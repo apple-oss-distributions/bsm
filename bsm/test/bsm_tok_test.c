@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/ipc.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -86,8 +87,9 @@ void write_arg64token(int fd)
 
 void write_attr32token(int fd)
 {
+#if BSM_BUG_VNODE_VATTR_DEFINED	/* see libbsm.h */
 	token_t *tok;
-	struct vattr attr;
+	struct vnode_vattr attr;
 		
 	attr.va_mode = 1;
 	attr.va_uid = 2;
@@ -98,6 +100,7 @@ void write_attr32token(int fd)
 
 	tok = au_to_attr32(&attr);
 	WRITE_TOKEN(fd, tok, "attr32");
+#endif	/* BSM_BUG_VNODE_VATTR_DEFINED */
 } 
 
 void write_execargstoken(int fd)

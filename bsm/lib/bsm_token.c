@@ -29,7 +29,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/ipc.h>
 #include <sys/socketvar.h>
 
 #include <libbsm.h>
@@ -133,16 +135,17 @@ token_t *au_to_arg(char n, char *text, u_int32_t v)
 	return au_to_arg32(n, text, v);
 }
 
+#if BSM_BUG_VNODE_VATTR_DEFINED	/* see libbsm.h */
 /*
  * token ID                1 byte
  * file access mode        4 bytes
  * owner user ID           4 bytes
  * owner group ID          4 bytes
- * file system ID          4 bytes
+ * file system ID          8 bytes
  * node ID                 8 bytes
  * device                  4 bytes/8 bytes (32-bit/64-bit)
  */
-token_t *au_to_attr32(struct vattr *attr)
+token_t *au_to_attr32(struct vnode_vattr *attr)
 {
 	token_t *t;
 	u_char *dptr = NULL;
@@ -172,28 +175,24 @@ token_t *au_to_attr32(struct vattr *attr)
 	ADD_U_INT32(dptr, attr->va_gid);
 	ADD_U_INT32(dptr, attr->va_fsid);
 
-	/* 
-	 * Darwin defines the size for fileid 
-	 * as 4 bytes; BSM defines 8 so pad with 0
-	 */    
-	ADD_U_INT32(dptr, pad0_32);
-	ADD_U_INT32(dptr, attr->va_fileid);
+	ADD_U_INT64(dptr, attr->va_fileid);
 
-	ADD_U_INT32(dptr, attr->va_rdev);
+	ADD_U_INT32(dptr, attr->va_rdev);	/* OK if sizeof(dev_t) unchanged */
 	
 	return t;
 }
 
-token_t *au_to_attr64(struct vattr *attr)
+token_t *au_to_attr64(struct vnode_vattr *attr)
 {
 	return NULL;
 }
 
-token_t *au_to_attr(struct vattr *attr)
+token_t *au_to_attr(struct vnode_vattr *attr)
 {
 	return au_to_attr32(attr);
 
 }
+#endif	/* BSM_BUG_VNODE_VATTR_DEFINED */
 
 
 /*
